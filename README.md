@@ -38,6 +38,9 @@ Best approach is to call in Presenter's startup() $this->dropbox->getApi();. Thi
 Possible calls:
 ---------------
 
+        // Echo511\Dropbox\Rooftop
+        $this->dropbox = $this->context->dropbox->rooftop;
+
         // Get account information
         $this->dropbox->call('account');
 
