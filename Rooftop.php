@@ -12,8 +12,6 @@ namespace Echo511\Dropbox;
 class Rooftop extends \Nette\Object
 {
 
-    const SESSION_SECTION = 'Echo511\Dropbox';
-
     public function __construct($key, $secret)
     {
         $this->api = new \Dropbox(array(
@@ -24,13 +22,14 @@ class Rooftop extends \Nette\Object
 
 
     /*********** Dependencies ***********/
-    private $session;
+    private $tokenStorage;
     private $httpRequest;
     private $httpResponse;
 
-    public function setSession(\Nette\Http\Session $session)
+    public function setTokenStorage(ItokenStorage $tokenStorage)
     {
-        $this->session = $session->getSection(self::SESSION_SECTION);
+        $this->tokenStorage = $tokenStorage;
+        $this->tokenStorage->setRooftop($this);
         return $this;
     }
 
@@ -45,6 +44,14 @@ class Rooftop extends \Nette\Object
         $this->httpResponse = $response;
         return $this;
     }
+
+
+    /********** Callbacks **********/
+    // Before authenticated
+    public $onRequest = array();
+
+    // After authenticated
+    public $onAccess = array();
 
 
     /*********** Default root ***********/
@@ -73,17 +80,17 @@ class Rooftop extends \Nette\Object
     public function getApi()
     {
         if(!$this->isReady()) {
-            if(!$this->session->token_secret) {
+            if(!$this->tokenStorage->getTokenSecret()) {
                 $this->request();
             }
 
-            if(!$this->session->oauth_token_secret || !$this->session->oauth_token) {
+            if(!$this->tokenStorage->getOauthToken() || !$this->tokenStorage->getOauthTokenSecret()) {
                 $this->access();
             }
 
             $this->api->set_oauth_access(array(
-                'oauth_token' => $this->session->oauth_token,
-                'oauth_token_secret' => $this->session->oauth_token_secret,
+                'oauth_token' => $this->tokenStorage->getOauthToken(),
+                'oauth_token_secret' => $this->tokenStorage->getOauthTokenSecret(),
             ));
 
             $this->ready = true;
@@ -99,10 +106,10 @@ class Rooftop extends \Nette\Object
     {
         $data = $this->api->get_request_token( (string) $this->httpRequest->getUrl() );
 
-        $this->session->token_secret = $data['token_secret'];
+        foreach($this->onRequest as $onRequest)
+            $onRequest->invokeArgs(array($data['token_secret']));
 
-        $this->httpResponse->redirect($data['redirect']);
-        die;
+        $this->httpResponse->redirect($data['redirect']); die;
     }
 
     // After user has been authenticated
@@ -112,10 +119,10 @@ class Rooftop extends \Nette\Object
             $this->request();
         }
 
-        $oauth = $this->api->get_access_token($this->session->token_secret);
+        $oauth = $this->api->get_access_token($this->tokenStorage->getTokenSecret());
 
-        $this->session->oauth_token_secret = $oauth['oauth_token_secret'];
-        $this->session->oauth_token = $oauth['oauth_token'];
+        foreach($this->onAccess as $onAccess)
+            $onAccess->invokeArgs(array($oauth));
 
         // Removing uid and oauth_token from url
         $url = $this->httpRequest->getUrl();
@@ -127,8 +134,7 @@ class Rooftop extends \Nette\Object
         $url = new \Nette\Http\Url((string) $url);
         $url->setQuery($query);
 
-        $this->httpResponse->redirect((string) $url);
-        die;
+        $this->httpResponse->redirect((string) $url); die;
     }
 
 
