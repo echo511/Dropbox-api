@@ -1,7 +1,14 @@
 Dropbox API handler for Nette Framework.
 ========================================
 
-Needs to be said this component is based on great API which can be found here: https://github.com/jimdoescode/CodeIgniter-Dropbox-API-Library
+Needs to be said this component is based on a great API which can be found here: https://github.com/jimdoescode/CodeIgniter-Dropbox-API-Library
+
+Register in bootstrap.php:
+-----------------------------
+
+        $configurator->onCompile[] = function ($configurator, $compiler) {
+            Echo511\Dropbox\CompilerExtension::register($compiler);
+        };
 
 Configure config.neon:
 ----------------------
@@ -9,8 +16,8 @@ Configure config.neon:
         common:
                 dropbox:
                         # Identity
-                        key: 'kw0bhw9d843pkrb'
-                        secret: '5dwrjczawd5nh5i'
+                        key: ''
+                        secret: ''
 
                         # Sandbox for app folder access
                         # Dropbox for full access
@@ -25,7 +32,7 @@ Usage
 
 You do not need to worry about login etc. The handler will automatically attempt to login user by using redirects. Therefore is not recommend to use call function when processing forms etc. because after redirect your $_POST data are lost.
 
-Best approach is to call in Presenter's startup() call $this->dropbox->getApi();. This will not send any requests to Dropbox server unless user is not authenticated.
+Best approach is to call in Presenter's startup() $this->dropbox->getApi();. This will not send any requests to Dropbox server unless user is not authenticated.
 
 
 Possible calls:
