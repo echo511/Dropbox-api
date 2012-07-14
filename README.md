@@ -7,27 +7,23 @@ Implementation
 --------------
 
 Register in bootstrap.php:
-#####
 
-        $configurator->onCompile[] = function ($configurator, $compiler) {
-            Echo511\Dropbox\CompilerExtension::register($compiler);
-        };
+    Echo511\Dropbox\CompilerExtension::register($configurator);
 
 Configure config.neon:
-#####
 
-        common:
-                dropbox:
-                        # Identity
-                        key: ''
-                        secret: ''
+    common:
+            dropbox:
+                    # Identity
+                    key: ''
+                    secret: ''
 
-                        # Sandbox for app folder access
-                        # Dropbox for full access
-                        defaultRoot: 'sandbox' | 'dropbox'
+                    # Sandbox for app folder access
+                    # Dropbox for full access
+                    defaultRoot: 'sandbox' | 'dropbox'
 
-                        # Use Nette's panel for dumping responses
-                        panel: true
+                    # Use Nette's panel for dumping responses
+                    panel: true
 
 
 Usage
@@ -41,36 +37,36 @@ Best approach is to call in Presenter's startup() $this->dropbox->getApi();. Thi
 Possible calls:
 ---------------
 
-        // Echo511\Dropbox\Rooftop
-        $this->dropbox = $this->context->dropbox->rooftop;
+    // Echo511\Dropbox\Rooftop
+    $this->dropbox = $this->context->dropbox->rooftop;
 
-        // Get account information
-        $this->dropbox->call('account');
+    // Get account information
+    $this->dropbox->call('account');
 
-        // Server/Client
-        $this->dropbox->call('add', $dropboxRelativePath, $localAbsolutePath, $options);
-        $this->dropbox->call('get', $localAbsolutePath, $dropboxRelativePath);
-        $this->dropbox->call('thumbnails', $localAbsolutePath, $dropboxRelativePath, $options);
+    // Server/Client
+    $this->dropbox->call('add', $dropboxRelativePath, $localAbsolutePath, $options);
+    $this->dropbox->call('get', $localAbsolutePath, $dropboxRelativePath);
+    $this->dropbox->call('thumbnails', $localAbsolutePath, $dropboxRelativePath, $options);
 
-        // Searching & Metadata
-        $this->dropbox->call('search', $dropboxRelativePath, $query, $options);
-        $this->dropbox->call('metadata', $dropboxRelativePath, $options);
-        $this->dropbox->call('revisions', $dropboxRelativePath, $options);
+    // Searching & Metadata
+    $this->dropbox->call('search', $dropboxRelativePath, $query, $options);
+    $this->dropbox->call('metadata', $dropboxRelativePath, $options);
+    $this->dropbox->call('revisions', $dropboxRelativePath, $options);
 
-        // Server side operations
-        $this->dropbox->call('create_folder', $dropboxRelativePath);
-        $this->dropbox->call('move', $dropboxFrom, $dropboxTo);
-        $this->dropbox->call('copy', $dropboxFrom, $dropboxTo);
-        $this->dropbox->call('delete', $dropboxRelativePath);
-        $this->dropbox->call('restore', $dropboxRelativePath, $rev);
+    // Server side operations
+    $this->dropbox->call('create_folder', $dropboxRelativePath);
+    $this->dropbox->call('move', $dropboxFrom, $dropboxTo);
+    $this->dropbox->call('copy', $dropboxFrom, $dropboxTo);
+    $this->dropbox->call('delete', $dropboxRelativePath);
+    $this->dropbox->call('restore', $dropboxRelativePath, $rev);
 
-        // Public links
-        $this->dropbox->call('shares', $dropboxRelativePath);
-        $this->dropbox->call('media', $dropboxRelativePath);
+    // Public links
+    $this->dropbox->call('shares', $dropboxRelativePath);
+    $this->dropbox->call('media', $dropboxRelativePath);
 
-        // Synchronise
-        $this->dropbox->call('delta', $cursor);
-        $this->dropbox->call('synchronise', $localAbsolutePath);
+    // Synchronise
+    $this->dropbox->call('delta', $cursor);
+    $this->dropbox->call('synchronise', $localAbsolutePath);
 
 
 More info

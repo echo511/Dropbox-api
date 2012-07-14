@@ -2,6 +2,8 @@
 
 namespace Echo511\Dropbox;
 
+use Nette\Config\Configurator;
+use Nette\Config\Compiler;
 use Nette\Diagnostics\Debugger;
 
 /**
@@ -49,9 +51,11 @@ class CompilerExtension extends \Nette\Config\CompilerExtension
             }
     }
 
-    public static function register($compiler)
+    public static function register(Configurator $config)
     {
-            $compiler->addExtension('dropbox', new self);
+        $config->onCompile[] = function (Configurator $config, Compiler $compiler) {
+            $compiler->addExtension('dropbox', new CompilerExtension());
+        };
     }
 
 }
