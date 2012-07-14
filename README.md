@@ -3,15 +3,18 @@ Dropbox API handler for Nette Framework.
 
 Needs to be said this component is based on a great API which can be found here: https://github.com/jimdoescode/CodeIgniter-Dropbox-API-Library
 
+Implementation
+--------------
+
 Register in bootstrap.php:
------------------------------
+#####
 
         $configurator->onCompile[] = function ($configurator, $compiler) {
             Echo511\Dropbox\CompilerExtension::register($compiler);
         };
 
 Configure config.neon:
-----------------------
+#####
 
         common:
                 dropbox:
