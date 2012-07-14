@@ -58,3 +58,8 @@ Possible calls:
         // Synchronise
         $this->dropbox->call('delta', $cursor);
         $this->dropbox->call('synchronise', $localAbsolutePath);
+
+
+More info
+---------
+https://www.dropbox.com/developers/reference/api
