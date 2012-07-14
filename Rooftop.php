@@ -137,10 +137,18 @@ class Rooftop extends \Nette\Object
     {
         $args = func_get_args();
 
-        $return = call_user_func_array(
-            array($this->getApi(), $args[0]),
-            array_diff($args, array($args[0]))
-        );
+        if($args[0] == 'synchronise') {
+            $return = call_user_func_array(
+                array($this, 'synchronise'),
+                array_diff($args, array($args[0]))
+            );
+
+        } else {
+            $return = call_user_func_array(
+                array($this->getApi(), $args[0]),
+                array_diff($args, array($args[0]))
+            );
+        }
 
         $test = (array) $return;
 
@@ -173,6 +181,66 @@ class Rooftop extends \Nette\Object
             return true;
 
         return false;
+    }
+
+
+    /*********** Synchronise ***********/
+    public function synchronise($destination, $_cursor = 'useDefault')
+    {
+        // Last delta's cursor
+        if($_cursor == 'useDefault') {
+            $cursor = $this->session->cursor;
+        } else {
+            $cursor = $_cursor;
+        }
+
+
+        $delta = $this->call('delta', $cursor);
+
+        foreach($delta->entries as $entry) {
+            $localPath = $destination.$entry[0];
+            $dropboxPath = $entry[0];
+
+            $change = $entry[1];
+
+            // New/Changed
+            if(is_object($change)) {
+
+                // New directory
+                if($change->is_dir == 1) {
+                    if(!is_dir($localPath))
+                        mkdir($localPath);
+                }
+
+                // New or updated file
+                else {
+                    if(file_exists($localPath))
+                        unlink($localPath);
+
+                    $this->call('get', $localPath, $dropboxPath);
+                }
+
+            }
+
+            // Removed
+            else {
+                if(is_dir($localPath)) {
+                    rmdir($localPath);
+                }
+
+                if(file_exists($localPath)) {
+                    unlink($localPath);
+                }
+            }
+        }
+
+
+        // Update delta's cursor
+        if($_cursor == 'useDefault') {
+            $this->session->cursor = $delta->cursor;
+        }
+
+        return $delta->cursor;
     }
 
 }

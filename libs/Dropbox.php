@@ -535,7 +535,7 @@ class Dropbox
         //If the specified a destination and the request went OK write the file.
         if($destination !== false && curl_getinfo($ch, CURLINFO_HTTP_CODE) == '200')
         {
-            $fh = fopen($destination, 'w');
+            $fh = fopen("safe://".$destination, 'w');
             fwrite($fh, $response);
             if($fh !== false)fclose($fh);
         }
