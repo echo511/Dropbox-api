@@ -18,6 +18,9 @@ Configure config.neon:
                     key: ''
                     secret: ''
 
+                    # OAuthStorage
+                    oauthStorage: @dropbox.singleUser
+
                     # Sandbox for app folder access
                     # Dropbox for full access
                     defaultRoot: 'sandbox' | 'dropbox'
@@ -29,44 +32,42 @@ Configure config.neon:
 Usage
 -----
 
-You do not need to worry about login etc. The handler will automatically attempt to login user by using redirects. Therefore is not recommend to use call function when processing forms etc. because after redirect your $_POST data are lost.
+Dropbox provides lifetime access token for your app once user allows it. Therefore is useful to store this token (actually there are two: token, token_secret) for further use.
 
-Best approach is to call in Presenter's startup() $this->dropbox->getApi();. This will not send any requests to Dropbox server unless user is not authenticated.
+Storage based on session for single user is already included. In presenter the actuall call for this storage would look like:
 
+    $rooftop = $this->context->dropbox->rooftop->getOAuthStorage() // Get storage
+                                               ->authorize(); // This method calls $rooftop->setOAuthAccess();
 
-Possible calls:
----------------
-
-    // Echo511\Dropbox\Rooftop
-    $this->dropbox = $this->context->dropbox->rooftop;
+Then you can call these:
 
     // Get account information
-    $this->dropbox->call('account');
+    $rooftop->call('account');
 
     // Server/Client
-    $this->dropbox->call('add', $dropboxRelativePath, $localAbsolutePath, $options);
-    $this->dropbox->call('get', $localAbsolutePath, $dropboxRelativePath);
-    $this->dropbox->call('thumbnails', $localAbsolutePath, $dropboxRelativePath, $options);
+    $rooftop->call('add', $dropboxRelativePath, $localAbsolutePath, $options);
+    $rooftop->call('get', $localAbsolutePath, $dropboxRelativePath);
+    $rooftop->call('thumbnails', $localAbsolutePath, $dropboxRelativePath, $options);
 
     // Searching & Metadata
-    $this->dropbox->call('search', $dropboxRelativePath, $query, $options);
-    $this->dropbox->call('metadata', $dropboxRelativePath, $options);
-    $this->dropbox->call('revisions', $dropboxRelativePath, $options);
+    $rooftop->call('search', $dropboxRelativePath, $query, $options);
+    $rooftop->call('metadata', $dropboxRelativePath, $options);
+    $rooftop->call('revisions', $dropboxRelativePath, $options);
 
     // Server side operations
-    $this->dropbox->call('create_folder', $dropboxRelativePath);
-    $this->dropbox->call('move', $dropboxFrom, $dropboxTo);
-    $this->dropbox->call('copy', $dropboxFrom, $dropboxTo);
-    $this->dropbox->call('delete', $dropboxRelativePath);
-    $this->dropbox->call('restore', $dropboxRelativePath, $rev);
+    $rooftop->call('create_folder', $dropboxRelativePath);
+    $rooftop->call('move', $dropboxFrom, $dropboxTo);
+    $rooftop->call('copy', $dropboxFrom, $dropboxTo);
+    $rooftop->call('delete', $dropboxRelativePath);
+    $rooftop->call('restore', $dropboxRelativePath, $rev);
 
     // Public links
-    $this->dropbox->call('shares', $dropboxRelativePath);
-    $this->dropbox->call('media', $dropboxRelativePath);
+    $rooftop->call('shares', $dropboxRelativePath);
+    $rooftop->call('media', $dropboxRelativePath);
 
     // Synchronise
-    $this->dropbox->call('delta', $cursor);
-    $this->dropbox->call('synchronise', $localAbsolutePath);
+    $rooftop->call('delta', $cursor);
+    $rooftop->call('synchronise', $localAbsolutePath);
 
 
 More info

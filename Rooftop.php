@@ -2,6 +2,20 @@
 
 namespace Echo511\Dropbox;
 
+use Dropbox;
+use Echo511\Dropbox\Diagnostics\Panel;
+use Echo511\Dropbox\IOAuthStorage;
+use Echo511\Dropbox\Rooftop;
+use Exception;
+use LogicException;
+use Nette\Http\Request;
+use Nette\Http\Response;
+use Nette\Http\Session;
+use Nette\Http\SessionSection;
+use Nette\Http\Url;
+use Nette\Object;
+use stdClass;
+
 /**
  * This file is a part of Dropbox API handler for Nette Framework.
  *
@@ -9,12 +23,20 @@ namespace Echo511\Dropbox;
  * @package    Dropbox API handler
  * @license    New BSD License
  */
-class Rooftop extends \Nette\Object
+class Rooftop extends Object
 {
 
+    public static $SESSION_SECTION = 'Echo511\Dropbox\Rooftop';
+
+    /**
+     * Configures API for your app
+     *
+     * @param string $key
+     * @param string $secret
+     */
     public function __construct($key, $secret)
     {
-        $this->api = new \Dropbox(array(
+        $this->api = new Dropbox(array(
             'key' => $key,
             'secret' => $secret,
         ));
@@ -22,107 +44,134 @@ class Rooftop extends \Nette\Object
 
 
     /*********** Dependencies ***********/
-    private $tokenStorage;
+    /**
+     * @var IOAuthStorage
+     */
+    private $oauthStorage;
+
+    /**
+     * @var SessionSection
+     */
+    private $session;
+
+    /**
+     * @var Request
+     */
     private $httpRequest;
+
+    /**
+     * @var Response
+     */
     private $httpResponse;
 
-    public function setTokenStorage(ItokenStorage $tokenStorage)
+
+    /**
+     *
+     * @param IOAuthStorage $oauthStorage
+     * @return Rooftop
+     */
+    public function setOAuthStorage(IOAuthStorage $oauthStorage)
     {
-        $this->tokenStorage = $tokenStorage;
-        $this->tokenStorage->setRooftop($this);
+        $this->oauthStorage = $oauthStorage;
+        $this->oauthStorage->setRooftop($this);
         return $this;
     }
 
-    public function setHttpRequest(\Nette\Http\Request $request)
+    /**
+     * @param Session $session
+     * @return Rooftop
+     */
+    public function setSession(Session $session)
+    {
+        $this->session = $session->getSection(self::$SESSION_SECTION);
+        return $this;
+    }
+
+    /**
+     *
+     * @param Request $request
+     * @return Rooftop
+     */
+    public function setHttpRequest(Request $request)
     {
         $this->httpRequest = $request;
         return $this;
     }
 
-    public function setHttpResponse(\Nette\Http\Response $response)
+    /**
+     *
+     * @param Response $response
+     * @return Rooftop
+     */
+    public function setHttpResponse(Response $response)
     {
         $this->httpResponse = $response;
         return $this;
     }
 
-
-    /********** Callbacks **********/
-    // Before authenticated
-    public $onRequest = array();
-
-    // After authenticated
-    public $onAccess = array();
+    
+    /*********** Getter ***********/
+    /**
+     * @return IOAuthStorage
+     */
+    public function getOAuthStorage()
+    {
+        return $this->oauthStorage;
+    }
 
 
     /*********** Default root ***********/
+    /**
+     * Sets default root sandbox|dropbox
+     *
+     * @param string $root
+     * @return Rooftop
+     * @throws Exception
+     */
     public function setDefaultRoot($root)
     {
         if(!in_array($root, array('dropbox', 'sandbox'))) {
-            throw new \Exception('Dropbox::DEFAULT_ROOT supports only \'dropbox\' or \'sandbox\' values.');
+            throw new Exception('Dropbox::DEFAULT_ROOT supports only \'dropbox\' or \'sandbox\' values.');
         }
-        \Dropbox::$defaultRoot = $root;
+        Dropbox::$defaultRoot = $root;
         return $this;
     }
 
-
-    /*********** API ***********/
-    private $api;
-
-    // Is user authenticated?
-    private $ready = false;
-
-    private function isReady()
-    {
-        return $this->ready;
-    }
-
-    // Authenticate user
-    public function getApi()
-    {
-        if(!$this->isReady()) {
-            if(!$this->tokenStorage->getTokenSecret()) {
-                $this->request();
-            }
-
-            if(!$this->tokenStorage->getOauthToken() || !$this->tokenStorage->getOauthTokenSecret()) {
-                $this->access();
-            }
-
-            $this->api->set_oauth_access(array(
-                'oauth_token' => $this->tokenStorage->getOauthToken(),
-                'oauth_token_secret' => $this->tokenStorage->getOauthTokenSecret(),
-            ));
-
-            $this->ready = true;
-        }
-
-        return $this->api;
-    }
-
-
+    
     /*********** Authentication handlers ***********/
-    // When app's token is not present
+    public function getOAuthAccess()
+    {
+        if(!$this->session->token_secret) {
+            $this->request();
+        } else {
+            $this->access();
+        }
+    }
+
+    /**
+     * When app's token is not present (asking user for authorization)
+     */
     public function request()
     {
         $data = $this->api->get_request_token( (string) $this->httpRequest->getUrl() );
 
-        foreach($this->onRequest as $onRequest)
-            $onRequest->invokeArgs(array($data['token_secret']));
+        $this->session->token_secret = $data['token_secret'];
 
         $this->httpResponse->redirect($data['redirect']); die;
     }
 
-    // After user has been authenticated
+    /**
+     * After user has authorized your app
+     */
     public function access()
     {
         if(!array_key_exists('oauth_token', $this->httpRequest->getQuery())) {
             $this->request();
         }
 
-        $oauth = $this->api->get_access_token($this->tokenStorage->getTokenSecret());
+        $oauth = $this->api->get_access_token($this->session->token_secret);
 
-        foreach($this->onAccess as $onAccess)
-            $onAccess->invokeArgs(array($oauth));
+        $this->oauthStorage->storeOAuthAccess($oauth['oauth_token'], $oauth['oauth_token_secret']);
 
         // Removing uid and oauth_token from url
         $url = $this->httpRequest->getUrl();
@@ -131,14 +180,74 @@ class Rooftop extends \Nette\Object
         unset($query['uid']);
         unset($query['oauth_token']);
 
-        $url = new \Nette\Http\Url((string) $url);
+        $url = new Url((string) $url);
         $url->setQuery($query);
 
         $this->httpResponse->redirect((string) $url); die;
+    }    
+    
+
+    /*********** API ***********/
+    /**
+     * @var Dropbox
+     */
+    private $api;
+
+    // Is user authenticated?
+    /**
+     * @var boolean
+     */
+    private $ready = false;
+
+    /**
+     * Is API authorized?
+     *
+     * @return boolean
+     */
+    private function isReady()
+    {
+        return $this->ready;
+    }
+
+    /**
+     * Gets API
+     *
+     * @return Dropbox
+     */
+    public function getApi()
+    {
+        if($this->isReady()) {
+            return $this->api;
+        }
+
+        throw new LogicException('Dropbox OAuthAccess not setted.');
+    }
+
+    /**
+     * Authenticate user
+     * 
+     * @param string $token
+     * @param string $token_secret
+     * @return Rooftop
+     */
+    public function setOAuthAccess($token, $token_secret)
+    {
+        $this->api->set_oauth_access(array(
+            'oauth_token' => $token,
+            'oauth_token_secret' => $token_secret,
+        ));
+
+        $this->ready = true;
+        return $this;
     }
 
 
     /*********** Call API's function ***********/
+    /**
+     * Calls API's function and dumps response into panel
+     *
+     * @return object|stdClass
+     */
     public function call()
     {
         $args = func_get_args();
@@ -173,14 +282,22 @@ class Rooftop extends \Nette\Object
 
 
     /*********** Nette's panel ***********/
+    /**
+     * @var Panel
+     */
     private $panel;
 
-    public function setPanelRenderer($panel)
+    public function setPanelRenderer(Panel $panel)
     {
         $this->panel = $panel;
         return $this;
     }
 
+    /**
+     * Is panel wired?
+     *
+     * @return boolean
+     */
     public function hasPanel()
     {
         if(is_object($this->panel))
@@ -191,16 +308,14 @@ class Rooftop extends \Nette\Object
 
 
     /*********** Synchronise ***********/
-    public function synchronise($destination, $_cursor = 'useDefault')
+    /**
+     * Synchronises entire Dropbox folder with local storage based on delta entries
+     *
+     * @param string $destination
+     * @param string $cursor
+     */
+    public function synchronise($destination, $cursor)
     {
-        // Last delta's cursor
-        if($_cursor == 'useDefault') {
-            $cursor = $this->session->cursor;
-        } else {
-            $cursor = $_cursor;
-        }
-
-
         $delta = $this->call('delta', $cursor);
 
         foreach($delta->entries as $entry) {
@@ -239,14 +354,6 @@ class Rooftop extends \Nette\Object
                 }
             }
         }
-
-
-        // Update delta's cursor
-        if($_cursor == 'useDefault') {
-            $this->session->cursor = $delta->cursor;
-        }
-
-        return $delta->cursor;
     }
 
 }
