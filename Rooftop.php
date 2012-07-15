@@ -109,7 +109,7 @@ class Rooftop extends Object
         return $this;
     }
 
-    
+
     /*********** Getter ***********/
     /**
      * @return IOAuthStorage
@@ -137,8 +137,11 @@ class Rooftop extends Object
         return $this;
     }
 
-    
+
     /*********** Authentication handlers ***********/
+    /**
+     * Starts authorization process (indirectly calls $this->oauthStorage->storeOAuthAccess();)
+     */
     public function getOAuthAccess()
     {
         if(!$this->session->token_secret) {
@@ -151,7 +154,7 @@ class Rooftop extends Object
     /**
      * When app's token is not present (asking user for authorization)
      */
-    public function request()
+    private function request()
     {
         $data = $this->api->get_request_token( (string) $this->httpRequest->getUrl() );
 
@@ -163,7 +166,7 @@ class Rooftop extends Object
     /**
      * After user has authorized your app
      */
-    public function access()
+    private function access()
     {
         if(!array_key_exists('oauth_token', $this->httpRequest->getQuery())) {
             $this->request();
@@ -184,8 +187,8 @@ class Rooftop extends Object
         $url->setQuery($query);
 
         $this->httpResponse->redirect((string) $url); die;
-    }    
-    
+    }
+
 
     /*********** API ***********/
     /**
@@ -225,7 +228,7 @@ class Rooftop extends Object
 
     /**
      * Authenticate user
-     * 
+     *
      * @param string $token
      * @param string $token_secret
      * @return Rooftop
@@ -314,7 +317,7 @@ class Rooftop extends Object
      * @param string $destination
      * @param string $cursor
      */
-    public function synchronise($destination, $cursor)
+    private function synchronise($destination, $cursor)
     {
         $delta = $this->call('delta', $cursor);
 

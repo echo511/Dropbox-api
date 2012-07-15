@@ -45,7 +45,7 @@ class Panel extends Object implements IBarPanel
     }
 
     /**
-     * Render tab
+     * Renders tab
      * 
      * @return string
      */
@@ -57,7 +57,7 @@ class Panel extends Object implements IBarPanel
     }
     
     /**
-     * Render panel
+     * Renders panel
      * 
      * @return string
      */

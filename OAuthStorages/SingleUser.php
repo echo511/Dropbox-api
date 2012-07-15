@@ -20,7 +20,7 @@ class SingleUser extends Object implements IOAuthStorage
 
     public static $SESSION_SECTION = 'Echo511\Dropbox\OAuthStorages\SingleUser';
 
-    
+
     /*********** Dependencies ***********/
     /**
      * @var Rooftop
@@ -32,7 +32,7 @@ class SingleUser extends Object implements IOAuthStorage
      */
     private $session;
 
-    /** 
+    /**
      * @param Rooftop $rooftop
      */
     public function setRooftop(Rooftop $rooftop) {
@@ -48,11 +48,11 @@ class SingleUser extends Object implements IOAuthStorage
         return $this;
     }
 
-    
+
     /*********** Storing OAuth ***********/
     /**
      * Store OAuth tokens into session
-     * 
+     *
      * @param string $token
      * @param string $token_secret
      */
@@ -62,11 +62,11 @@ class SingleUser extends Object implements IOAuthStorage
         $this->session->token_secret = $token_secret;
     }
 
-    
+
     /*********** Authorizes user | Provides his tokens  ***********/
     /**
      * Calls $rooftop->setOAuthAccess();
-     * 
+     *
      * @return Rooftop
      */
     public function authorize()
